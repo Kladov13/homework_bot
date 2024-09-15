@@ -2,8 +2,9 @@ import os
 import requests
 import logging
 import time
+import sys
 
-from telebot import TeleBot, types
+from telebot import TeleBot
 from dotenv import load_dotenv
 
 
@@ -21,7 +22,6 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 
-
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -33,66 +33,76 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-last_status = None
 
 def check_tokens():
-    if not (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID):
+    """Проверяет наличие всех необходимых токенов."""
+    if not PRACTICUM_TOKEN or not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        logging.critical('Отсутствуют обязательные переменные окружения!')
         return False
     return True
 
 
 def send_message(bot, message):
-    global last_status
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button = types.KeyboardButton('/status')
-    keyboard.add(button)
+    """Отправляет сообщение."""
     try:
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message,
-                         reply_markup=keyboard)
-        last_status = message
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logging.debug(f'Бот отправил сообщение: {message}')
-    except:
-        logging.error(f'Сообщение не отправлено')
-
-
-
+    except Exception:
+        logging.error('Сообщение не отправлено')
 
 
 def get_api_answer(timestamp):
+    """Делает запрос к API Практикума и возвращает ответ."""
     params = {'from_date': timestamp}
-    return requests.get(ENDPOINT, headers=HEADERS,
-                        params=params).json()
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        response.raise_for_status()
+        if response.status_code != 200:
+            logging.error(f'Ошибка ответа API: {response.status_code}')
+            raise RuntimeError(f'Ошибка ответа API: {response.status_code}')
+        return response.json()
+    except requests.RequestException as e:
+        logging.error(f'Ошибка при запросе к API: {e}')
+        raise RuntimeError('Ошибка запроса к API Яндекс.Практикума') from e
+    except ValueError as e:
+        logging.error(f'Некорректный JSON в ответе API: {e}')
+        raise ValueError('Некорректный формат ответа API (не JSON)') from e
 
 
 def check_response(response):
+    """Проверяет корректность ответа от API."""
+    if type(response) is not dict:
+        logging.error('API данные не соответсвуют типу данных')
+        raise TypeError
+    if type(response.get('homeworks')) is not list:
+        logging.error('API данные не соответсвуют типу данных')
+        raise TypeError
     return response.get('homeworks')
 
 
 def parse_status(homework):
+    """Формирует сообщение о статусе домашней работы."""
+    if 'homework_name' not in homework:
+        raise KeyError('Отстутсвует ключ в ответе от API')
+    if 'status' not in homework:
+        raise KeyError('Отстутсвует ключ в ответе от API')
     homework_name = homework['homework_name']
     homework_status = homework['status']
+    if homework_status not in HOMEWORK_VERDICTS:
+        raise ValueError(f'Ошибка "{homework_status}" в ответе API.')
     verdict = HOMEWORK_VERDICTS[homework_status]
-
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def main():
     """Основная логика работы бота."""
-
-
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = 1709280816
 
     if not check_tokens():
         logging.critical('Отсутствуют обязательные переменные окружения!')
-        return
-   
-    @bot.message_handler(commands=['status'])
-    def handle_status(message):
-        bot.reply_to(message, last_status)
-
-    
+        sys.exit(1)
 
     while True:
         try:
@@ -109,7 +119,6 @@ def main():
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
         time.sleep(RETRY_PERIOD)
-        
 
 
 if __name__ == '__main__':
