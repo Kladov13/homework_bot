@@ -65,31 +65,32 @@ def get_api_answer(timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-        if response.status_code != HTTPStatus.OK:
-            raise RuntimeError(
-                ERROR_API_RESPONSE.format(
-                    status_code=response.status_code,
-                    params=params
-                )
-            )
-        response_json = response.json()
-        # Проверка на наличие ключей code или error в ответе
-        if 'code' in response_json or 'error' in response_json:
-            error_key = 'code' if 'code' in response_json else 'error'
-            error_value = response_json.get(error_key)
-            raise RuntimeError(
-                ERROR_API_JSON.format(
-                    response_json=ERROR_KEY_VALUE.format(key=error_key,
-                                                         value=error_value),
-                    params=params
-                )
-            )
-        return response_json
+
     except requests.RequestException as e:
         raise ConnectionError(
             error=e,
             params=params
         ) from e
+    if response.status_code != HTTPStatus.OK:
+        raise RuntimeError(
+            ERROR_API_RESPONSE.format(
+                status_code=response.status_code,
+                params=params
+            )
+        )
+    response_json = response.json()
+    # Проверка на наличие ключей code или error в ответе
+    if 'code' in response_json or 'error' in response_json:
+        error_key = 'code' if 'code' in response_json else 'error'
+        error_value = response_json.get(error_key)
+        raise RuntimeError(
+            ERROR_API_JSON.format(
+                response_json=ERROR_KEY_VALUE.format(key=error_key,
+                                                     value=error_value),
+                params=params
+            )
+        )
+    return response_json
 
 
 def check_response(response):
@@ -169,6 +170,4 @@ if __name__ == '__main__':
             logging.FileHandler(log_file, encoding='utf-8')  # Логи в файл
         ]
     )
-    logger = logging.getLogger(__name__)
-
     main()
