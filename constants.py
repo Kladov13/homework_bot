@@ -2,8 +2,6 @@ import os
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 REQUIRED_TOKENS = ['PRACTICUM_TOKEN', 'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID']
 MISSING_TOKENS = 'Отсутствуют обязательные переменные окружения: {}'
@@ -39,8 +37,12 @@ ERROR_REQUEST = (
     'параметры запроса: {params}'
 )
 
-MISSING_KEY = 'Отсутствует ключ "homeworks" в ответе API'
+ERROR_MISSING_HOMEWORKS_KEY = 'Отсутствует ключ "homeworks" в ответе API'
+
 EXPECTED_TYPE = 'Ожидался dict, но получен {type_name}'
+EXPECTED_LIST = 'Ожидался dict, но получен {type_name}'
+ERROR_KEY_VALUE = 'Ошибка в API: найден ключ "{key}" со значением "{value}".'
+
 
 NEW_STATUSES = 'Нет новых статусов для проверки.'
 
