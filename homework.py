@@ -9,7 +9,6 @@ from telebot import TeleBot
 from dotenv import load_dotenv
 
 from constants import (
-    ERROR_KEY_VALUE,
     REQUIRED_TOKENS,
     MISSING_TOKENS,
     RETRY_PERIOD,
@@ -40,7 +39,7 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 logger = logging.getLogger(__name__)
 
 
-def check_tokens(logger):
+def check_tokens():
     """Проверяет наличие всех необходимых токенов и логгирует отсутствующие."""
     missing_tokens = [
         name for name in REQUIRED_TOKENS
@@ -80,16 +79,16 @@ def get_api_answer(timestamp):
         )
     response_json = response.json()
     # Проверка на наличие ключей code или error в ответе
-    if 'code' in response_json or 'error' in response_json:
-        error_key = 'code' if 'code' in response_json else 'error'
-        error_value = response_json.get(error_key)
-        raise RuntimeError(
-            ERROR_API_JSON.format(
-                response_json=ERROR_KEY_VALUE.format(key=error_key,
-                                                     value=error_value),
-                params=params
+    for error_key in ['code', 'error']:
+        if error_key in response_json:
+            error_value = response_json.get(error_key)
+            raise RuntimeError(
+                ERROR_API_JSON.format(
+                    response_json=f'Ошибка в API: найден ключ "{error_key}" '
+                                  f'со значением "{error_value}"',
+                    params=params
+                )
             )
-        )
     return response_json
 
 
@@ -130,21 +129,20 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    logger = logging.getLogger(__name__)
-    check_tokens(logger)
+    check_tokens()
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     last_error_message = None
     while True:
-        message_sent = False
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
             if homeworks:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
-                message_sent = True
+                # Обновляем только после успешной передачи вердикта в Телеграмм
+                timestamp = response.get('current_date', timestamp)
             else:
                 logger.debug(NEW_STATUSES)
         except Exception as error:
@@ -152,8 +150,7 @@ def main():
             logger.error(message, exc_info=True)
             if message != last_error_message:
                 send_message(bot, message)
-            if message_sent:
-                timestamp = response.get('current_date', timestamp)
+                # Обновляем только после успешной передачи проблемы в Телеграмм
                 last_error_message = message
         time.sleep(RETRY_PERIOD)
 

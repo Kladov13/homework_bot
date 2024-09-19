@@ -40,8 +40,7 @@ ERROR_REQUEST = (
 ERROR_MISSING_HOMEWORKS_KEY = 'Отсутствует ключ "homeworks" в ответе API'
 
 EXPECTED_TYPE = 'Ожидался dict, но получен {type_name}'
-EXPECTED_LIST = 'Ожидался dict, но получен {type_name}'
-ERROR_KEY_VALUE = 'Ошибка в API: найден ключ "{key}" со значением "{value}".'
+EXPECTED_LIST = 'Ожидался list для ключа "{key}", но получен {type_name}'
 
 
 NEW_STATUSES = 'Нет новых статусов для проверки.'
