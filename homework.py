@@ -164,7 +164,8 @@ def main():
             return last_status, timestamp
         except Exception as error:
             last_error = handle_error(bot, error, last_error)
-        time.sleep(RETRY_PERIOD)
+        finally:
+            time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
