@@ -132,19 +132,24 @@ def main():
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
+    last_status = None
+    last_error = None
     while True:
         try:
             response = get_api_answer(timestamp)
             response = check_response(response)
-            if response:
-                message = parse_status(response[0])
-                send_message(bot, message)
+            status = parse_status(response)
+            if status != last_status:
+                send_message(bot, status)
+                last_status = status
                 timestamp = response.get('current_date', timestamp)
             else:
                 logger.debug(NEW_STATUSES)
         except Exception as error:
             message = ERROR_FAILURE.format(error=error)
-            logger.error(message, exc_info=True)
+            if message != last_error:
+                send_message(bot, message)
+                last_error = message
         time.sleep(RETRY_PERIOD)
 
 
