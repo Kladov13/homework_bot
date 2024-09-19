@@ -55,8 +55,10 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.debug(SEND_MESSAGE_DEBUG.format(message))
+        return True
     except Exception as e:
         logger.error(SEND_MESSAGE_ERROR.format(message, e), exc_info=True)
+        return False
 
 
 def get_api_answer(timestamp):
@@ -152,16 +154,11 @@ def main():
             response = check_response(response)
             if not response:
                 logger.debug(NEW_STATUSES)
-                return last_status, timestamp
             status = parse_status(response[0])
             if status != last_status:
-                try:
-                    send_message(bot, status)
+                if send_message(bot, status):
                     last_status = status
                     timestamp = response.get('current_date', timestamp)
-                except Exception as error:
-                    logger.error(error)
-            return last_status, timestamp
         except Exception as error:
             last_error = handle_error(bot, error, last_error)
         finally:
