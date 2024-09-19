@@ -126,6 +126,18 @@ def parse_status(homework):
     return STATUS_CHANGED.format(homework_name=homework_name, verdict=verdict)
 
 
+def handle_error(bot, error, last_error):
+    """Обработка ошибок."""
+    message = ERROR_FAILURE.format(error=error)
+    if message != last_error:
+        try:
+            send_message(bot, message)
+            last_error = message
+        except Exception as error:
+            logger.error(error)
+    return last_error
+
+
 def main():
     """Основная логика работы бота."""
     check_tokens()
@@ -151,14 +163,7 @@ def main():
                     logger.error(error)
             return last_status, timestamp
         except Exception as error:
-            message = ERROR_FAILURE.format(error=error)
-            if message != last_error:
-                try:
-                    send_message(bot, message)
-                    last_error = message
-                except Exception as error:
-                    logger.error(error)
-            return last_error
+            last_error = handle_error(bot, error, last_error)
         time.sleep(RETRY_PERIOD)
 
 
