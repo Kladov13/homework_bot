@@ -138,18 +138,27 @@ def main():
         try:
             response = get_api_answer(timestamp)
             response = check_response(response)
+            if not response:
+                logger.debug(NEW_STATUSES)
+                return last_status, timestamp
             status = parse_status(response[0])
             if status != last_status:
-                send_message(bot, status)
-                last_status = status
-                timestamp = response.get('current_date', timestamp)
-            else:
-                logger.debug(NEW_STATUSES)
+                try:
+                    send_message(bot, status)
+                    last_status = status
+                    timestamp = response.get('current_date', timestamp)
+                except Exception as error:
+                    logger.error(error)
+            return last_status, timestamp
         except Exception as error:
             message = ERROR_FAILURE.format(error=error)
             if message != last_error:
-                send_message(bot, message)
-                last_error = message
+                try:
+                    send_message(bot, message)
+                    last_error = message
+                except Exception as error:
+                    logger.error(error)
+            return last_error
         time.sleep(RETRY_PERIOD)
 
 
