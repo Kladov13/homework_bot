@@ -138,15 +138,13 @@ def main():
             response = check_response(response)
             if response:
                 message = parse_status(response[0])
+                send_message(bot, message)
+                timestamp = response.get('current_date', timestamp)
             else:
-                message = NEW_STATUSES
                 logger.debug(NEW_STATUSES)
-            send_message(bot, message)
-            timestamp = int(time.time())
         except Exception as error:
             message = ERROR_FAILURE.format(error=error)
             logger.error(message, exc_info=True)
-            send_message(bot, message)
         time.sleep(RETRY_PERIOD)
 
 
