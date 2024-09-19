@@ -138,7 +138,7 @@ def main():
         try:
             response = get_api_answer(timestamp)
             response = check_response(response)
-            status = parse_status(response)
+            status = parse_status(response[0])
             if status != last_status:
                 send_message(bot, status)
                 last_status = status
