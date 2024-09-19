@@ -67,8 +67,7 @@ def get_api_answer(timestamp):
 
     except requests.RequestException as e:
         raise ConnectionError(
-            error=e,
-            params=params
+            f'Ошибка соединения: {e}, параметры: {params}'
         ) from e
     if response.status_code != HTTPStatus.OK:
         raise RuntimeError(
@@ -84,8 +83,8 @@ def get_api_answer(timestamp):
             error_value = response_json.get(error_key)
             raise RuntimeError(
                 ERROR_API_JSON.format(
-                    response_json=f'Ошибка в API: найден ключ "{error_key}" '
-                                  f'со значением "{error_value}"',
+                    key=error_key,
+                    value=error_value,
                     params=params
                 )
             )
@@ -133,25 +132,21 @@ def main():
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-    last_error_message = None
     while True:
         try:
             response = get_api_answer(timestamp)
-            homeworks = check_response(response)
-            if homeworks:
-                message = parse_status(homeworks[0])
-                send_message(bot, message)
-                # Обновляем только после успешной передачи вердикта в Телеграмм
-                timestamp = response.get('current_date', timestamp)
+            response = check_response(response)
+            if response:
+                message = parse_status(response[0])
             else:
+                message = NEW_STATUSES
                 logger.debug(NEW_STATUSES)
+            send_message(bot, message)
+            timestamp = int(time.time())
         except Exception as error:
             message = ERROR_FAILURE.format(error=error)
             logger.error(message, exc_info=True)
-            if message != last_error_message:
-                send_message(bot, message)
-                # Обновляем только после успешной передачи проблемы в Телеграмм
-                last_error_message = message
+            send_message(bot, message)
         time.sleep(RETRY_PERIOD)
 
 

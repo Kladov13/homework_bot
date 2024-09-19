@@ -29,7 +29,7 @@ ERROR_API_RESPONSE = (
     'параметры запроса: {params}'
 )
 ERROR_API_JSON = (
-    'Ошибка в ответе API: {response_json}, '
+    'Ошибка в ответе API: найден ключ "{key}" со значением "{value}", '
     'параметры запроса: {params}'
 )
 ERROR_REQUEST = (
